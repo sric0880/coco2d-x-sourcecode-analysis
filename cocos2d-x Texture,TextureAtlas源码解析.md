@@ -395,9 +395,14 @@ bool SpriteBatchNode::initWithTexture(Texture2D *tex, ssize_t capacity)
     return true;
 }
 ```
-`SpriteBatchNode`重写了addChild函数，因为它只支持Sprites作为它的子节点，它还需要自己管理子节点，比如将节点加入到_descendants中去，并将Sprite中的Quad取出加入到_textureAtlas
-中去。它还递归的将子节点的儿子节点加入到了SpriteBatchNode中。
+`SpriteBatchNode`重写了addChild函数，因为它只支持Sprites作为它的子节点，它还需要自己管理子节点，比如将节点加入到_descendants中去，
+并将Sprite中的Quad取出加入到_textureAtlas中去。它还递归的将子节点的儿子节点加入到了SpriteBatchNode中。
 
+*将Sprite中的Quad复制一份加入到_textureAtlas，会导致如果Sprite中的Quad变了（颜色或位置改变了），将无法同步到_textureAtlas中去，那么绘制
+_textureAtlas将看不到这些变化。*
+
+***解决方案：<u>Sprite维护了一个索引_atlasIndex,它指向_textureAtlas中的Quads的位置，在Sprite
+的update函数中，都有调用`_textureAtlas->updateQuad(&_quad, _atlasIndex);`来保证_textureAtlas中是最新的Quad。</u>***
 
 `SpriteBatchNode`重写了`visit`函数，因为它只visit自己，没有调用儿子节点的visit函数。
 
