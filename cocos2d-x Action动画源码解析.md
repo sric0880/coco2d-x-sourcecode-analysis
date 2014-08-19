@@ -431,8 +431,3 @@ void Speed::step(float dt)
     _innerAction->step(dt * _speed);
 }
 ```
-
-10. CCCatmullRomTo：继承自CCCardinalSplineTo,
-     ccDrawCatmullRom：画一条CatmullRom曲线
-
-11. 创建一个node,调用一个action,直到这个node加入到parent中去时才会真正执行action.
