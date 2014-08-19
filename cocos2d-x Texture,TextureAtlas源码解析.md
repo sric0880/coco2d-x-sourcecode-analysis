@@ -307,7 +307,125 @@ void TextureAtlas::drawNumberOfQuads(ssize_t numberOfQuads, ssize_t start)
 ```
 
 ##例子
-###1. Sprite
+###1. Sprite & SpriteFrameCache
+在init函数中会调用TextureCache::addImage来创建Texture，如果已经创建好了直接从cache中取出。
+```c
+bool Sprite::initWithFile(const std::string& filename)
+{
+    CCASSERT(filename.size()>0, "Invalid filename for sprite");
+
+    Texture2D *texture = Director::getInstance()->getTextureCache()->addImage(filename);
+    if (texture)
+    {
+        Rect rect = Rect::ZERO;
+        rect.size = texture->getContentSize();
+        return initWithTexture(texture, rect);
+    }
+    return false;
+}
+bool Sprite::initWithFile(const std::string &filename, const Rect& rect)
+{
+    CCASSERT(filename.size()>0, "Invalid filename");
+
+    Texture2D *texture = Director::getInstance()->getTextureCache()->addImage(filename);
+    if (texture)
+    {
+        return initWithTexture(texture, rect);
+    }
+    return false;
+}
+```
+Sprite拥有比较特殊的是`SpriteFrame`，可以把它看做纹理的一小部分。`SpriteFrame`受到`SpriteFrameCache`的管理，就像`Texture2D`受到`TextureCache`的管理一样。
+获得或者创建Spriteframe都是通过`SpriteFrameCache`。
+
+`SpriteFrameCache`以Frame的name作为key，所有不同的图片千万不能重名，如果重名，可能会将已有的frame替换掉，程序会出现意想不到的效果。
+这里说的图片不是纹理，这里的图片通过打包程序生成一张大图，这张大图可以称为纹理，就是说，一张纹理上可以有很多小图片，每一个小图片其实就对应
+一个`SpriteFrame`。
+
+`SpriteFrameCache`有通过plist创建`SpriteFrame`的函数，纹理图片的名称可以作为参数传入，也可以通过plist传入。
+`SpriteFrameCache`中也是通过函数`TextureCache::addImage`创建纹理并传入`SpriteFrame`中的。
+
+如果纹理和SpriteFrame已经通过`SpriteFrameCache`加载到内存了，这个时候创建Sprite就简单多了，只需要调用函数
+```c
+bool Sprite::initWithSpriteFrameName(const std::string& spriteFrameName)
+```
+这也是用的最多的函数，因为游戏开发都会考虑将小图片打包成大图片，以减少纹理加载的时间，以及渲染的效率，打包程序一般会生成一个plist文件，用于记录spriteframe长宽坐标等信息。
 
 ###2. SpriteBatchNode
-###3. 粒子Paticle
+将多个node的绘制放到一个glDraw*命令里面去，提高了绘制效率，前提是这些node都使用同一个`Texture2D`。
+
+果然`SpriteBatchNode`用到了`TextureAtlas`，还使用了BatchCommand发送给Render进行绘制。下面是`SpriteBatchNode`的成员变量
+```c
+TextureAtlas *_textureAtlas;
+BlendFunc _blendFunc;
+BatchCommand _batchCommand;     // render command
+
+// all descendants: children, grand children, etc...
+// There is not need to retain/release these objects, since they are already retained by _children
+// So, using std::vector<Sprite*> is slightly faster than using cocos2d::Array for this particular case
+std::vector<Sprite*> _descendants;
+```
+`SpriteBatchNode`的init函数参数和`TextureAtlas`一样
+```c
+bool SpriteBatchNode::initWithTexture(Texture2D *tex, ssize_t capacity)
+{
+    CCASSERT(capacity>=0, "Capacity must be >= 0");
+
+    _blendFunc = BlendFunc::ALPHA_PREMULTIPLIED;
+    if(tex->hasPremultipliedAlpha())//如果纹理本身已经事先乘上了alpha值
+    {
+        _blendFunc = BlendFunc::ALPHA_NON_PREMULTIPLIED;//src color不需要在乘alpha值了
+    }
+    _textureAtlas = new TextureAtlas();
+
+    if (capacity == 0)
+    {
+        capacity = DEFAULT_CAPACITY; //为什么是29个
+    }
+
+    _textureAtlas->initWithTexture(tex, capacity);//初始化
+
+    updateBlendFunc();
+
+    _children.reserve(capacity);//给capacity个node预备空间
+
+    _descendants.reserve(capacity);
+    //设置所使用的Program
+    setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR));
+    return true;
+}
+```
+`SpriteBatchNode`重写了addChild函数，因为它只支持Sprites作为它的子节点，它还需要自己管理子节点，比如将节点加入到_descendants中去，并将Sprite中的Quad取出加入到_textureAtlas
+中去。它还递归的将子节点的儿子节点加入到了SpriteBatchNode中。
+
+
+`SpriteBatchNode`重写了`visit`函数，因为它只visit自己，没有调用儿子节点的visit函数。
+
+同样，它重写了`draw`函数：
+```c
+void SpriteBatchNode::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
+{
+    // Optimization: Fast Dispatch
+    if( _textureAtlas->getTotalQuads() == 0 )
+    {
+        return;
+    }
+
+    for(const auto &child: _children)
+        child->updateTransform();
+        //发送BatchCommand给Render
+        //BatchCommand在执行绘制时，会调用_textureAtlas的draw*函数。
+        //关于BatchCommand可以见渲染机制详解
+    _batchCommand.init(
+                       _globalZOrder,
+                       getGLProgram(), //从glProgramState中取出GLProgram
+                       _blendFunc,
+                       _textureAtlas, //
+                       transform);
+    renderer->addCommand(&_batchCommand);
+}
+```
+`SpriteBatchNode`其他函数主要用来增删查改Quad并动态分配capacity。这里不再详解。
+
+###3. ParticleSystem
+粒子系统详解请参见`cocos2d-x ParticleSystem源码解析`

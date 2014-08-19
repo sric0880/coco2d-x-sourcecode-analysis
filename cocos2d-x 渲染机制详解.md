@@ -3,8 +3,8 @@
 **version cocos2d-x 3.2**
 <!-- create time: 2014-08-18 13:03  -->
 
-渲染大致分为两步，先调用visit函数，visit函数中会调用draw函数，当然3.0版本后，draw函数不在直接绘制，而是将绘制命令发送到一个列队，再调用render函数执行列队中的命令。
-
+渲染大致分为两步，先调用visit函数，visit函数中会调用draw函数，3.0版本后，draw函数不再直接绘制，而是将绘制命令发送到一个列队，再调用render函数执行列队中的命令。
+对于VAO、VBO等基本概念这里不再详述。
 ###Visit
 ```c
 void Node::visit()
@@ -260,7 +260,7 @@ Type _type;
 float _globalOrder;
 ```
 
-1. ####QUAD_COMMAND
+1. **QUAD_COMMAND**  
 `QuadCommand`主要有如下属性：
 ```c
 uint32_t _materialID; //通过glProgram, (int)_textureID, (int)_blendType.src, (int)_blendType.dst哈希得到
@@ -374,13 +374,13 @@ void Renderer::drawBatchedQuads()
 ```
 该函数实现的一大特点就是auto-batch：可能将多次绘制命令合并成一个绘制命令，通过将连续的具有相同的MaterialID的command进行合并，减少了绘制的调用次数，提高了绘制的效率。
 
-2. ####CUSTOM_COMMAND
+2. **CUSTOM_COMMAND**  
 `CustomCommand`就多了一个回调函数
 ```c
 std::function<void()> func;
 ```
 
-3. ####BATCH_COMMAND
+3. **BATCH_COMMAND**  
 `BatchCommand`在cocos2d-x中的应用有两个地方：ParticleBatchNode和SpriteBatchNode。  
 `BatchCommand`包含如下属性：
 ```c
@@ -411,7 +411,7 @@ void BatchCommand::execute()
 ```
 在3.0之后的版本中，由于添加了auto-batch功能，ParticleBatchNode和SpriteBatchNode的节约效率的功能已经不那么明显，但是3.0之前的版本中，把精灵放在SpriteBatchNode父节点上和将粒子系统放在ParticleBatchNode，是能够把相同的精灵批处理，对于相同的贴图只调用一次绘制函数，还是对提升效率很有帮助的。
 
-4. ####GROUP_COMMAND
+4. **GROUP_COMMAND**  
 `GroupCommand`只有一个属性
 ```c
 int _renderQueueID; //作为_renderGroups的索引
@@ -428,7 +428,7 @@ Sprite::draw(renderer, transform, flags);//该方法中调用的所有command将
 renderer->popGroup();//重新使用默认渲染列队
 ```
 
-5. ####MESH_COMMAND
+5. **MESH_COMMAND**  
 `MeshCommand`用于Sprite3D，用于绘制3d模型
 它具有的一些方法：
 ```c
