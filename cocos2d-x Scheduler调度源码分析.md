@@ -151,6 +151,7 @@ void Scheduler::update(float dt)
         //在_performMutex.unlock()之前调用function()，如果在function()中有新的function加入到该_functionsToPerform
         //那岂不是死锁了，之前写代码我就遇到了这个问题，他们竟然也发现这个bug
         //话说回来，复制到一个temp的解决方案就没更好的方法了嘛
+        //当然有更好的方法：使用std::recursive_mutex而不是std::mutex就能解决这种问题
         auto temp = _functionsToPerform;
         _functionsToPerform.clear();
         _performMutex.unlock();
