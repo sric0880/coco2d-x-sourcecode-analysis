@@ -18,10 +18,11 @@ bool Director::init(void)
 {
   ...
   _actionManager = new ActionManager();
-  _scheduler->scheduleUpdate(_actionManager, Scheduler::PRIORITY_SYSTEM, false);
+  //在这里面循环调用，详细参见后面的章节<cocos2d-x Scheduler调度 源码分析>
+  _scheduler->scheduleUpdate(_actionManager, Scheduler::PRIORITY_SYSTEM, false);
   ...
 }
-```
+  
 Node
 ```c++
 Node::Node()

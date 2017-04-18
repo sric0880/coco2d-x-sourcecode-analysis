@@ -185,7 +185,7 @@ void schedule(SEL_SCHEDULE selector, Ref *target, float interval, bool paused);
 template <class T>
 void scheduleUpdate(T *target, int priority, bool paused)
 {
-    this->schedulePerFrame([target](float dt){
+    this->schedulePerFrame([target](float dt){
         target->update(dt);
     }, target, priority, paused);
 }
