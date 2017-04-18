@@ -27,10 +27,10 @@ Scheduler
 template <class T>
 void scheduleUpdate(T *target, int priority, bool paused)
 {
-	//每一帧调用target的update方法，具体如何每一帧调用参见另一篇<cocos2d-x Shader源码解析>
-	this->schedulePerFrame([target](float dt){
-	    target->update(dt);
-	}, target, priority, paused);
+  //每一帧调用target的update方法，具体如何每一帧调用参见另一篇<cocos2d-x Shader源码解析>
+  this->schedulePerFrame([target](float dt){
+    target->update(dt);
+  }, target, priority, paused);
 }
     
 Node
